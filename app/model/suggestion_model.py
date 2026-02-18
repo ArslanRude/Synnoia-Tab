@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 
@@ -9,20 +9,18 @@ class Suggestion_Schema(BaseModel):
     suggestion: str = Field(description="The suggested text")
 
 load_dotenv()
-model_key=os.getenv("GROQ_API_KEY")
-suggestion_model = ChatGroq(
-    model_name="llama-3.1-8b-instant", 
-    api_key=model_key,
-    temperature=0.2,
+model = ChatGoogleGenerativeAI(
+    model="gemini-3-flash-preview",
+    api_key=os.getenv("GOOGLE_API_KEY"),
+    temperature=0.3,
+    thinking_budget=0,
     max_tokens=64,
     stop=["\n\n"],
-    stream=True,
-    model_kwargs={
-        "top_p": 0.9,
-        "frequency_penalty": 0.2,
-        "presence_penalty": 0.1
-    }
+    top_p=0.9,
+    top_k=40
 )
+
+suggestion_model = model.with_structured_output(schema=Suggestion_Schema.model_json_schema(),method="json_schema")
 
 suggestion_prompt = ChatPromptTemplate.from_messages([
     ("system", '''
@@ -66,24 +64,14 @@ You are a silent writing partner.
 
 suggestion_chain = suggestion_prompt | suggestion_model
 
-async def stream_suggestion(prefix_text: str, suffix_text: str):
-    """Stream suggestion text chunks from the model"""
+async def get_suggestion(prefix_text: str, suffix_text: str):
+    """Get complete suggestion from the model"""
     try:
-        # Stream the model response
-        async for chunk in suggestion_chain.astream({
-            "prefix_text": prefix_text, 
+        suggestion = await suggestion_chain.ainvoke({
+            "prefix_text": prefix_text,
             "suffix_text": suffix_text
-        }):
-            # Extract content from the chunk
-            if isinstance(chunk, dict) and "content" in chunk:
-                content = chunk["content"]
-                if content and content.strip():
-                    yield content.strip()
-            elif hasattr(chunk, 'content'):
-                content = chunk.content
-                if content and content.strip():
-                    yield content.strip()
+        })
+        return suggestion['suggestion']
     except Exception as e:
-        yield f"Error: {str(e)}"
+        return f"Error: {str(e)}"
 
- 

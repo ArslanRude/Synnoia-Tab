@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.model.suggestion_model import stream_suggestion
+from app.model.suggestion_model import get_suggestion
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 
@@ -13,7 +13,7 @@ async def get_root():
     return {"Hello": "World"}
 
 @app.websocket("/ws")
-async def get_suggestion(websocket: WebSocket):
+async def get_suggestion_ws(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
@@ -26,20 +26,18 @@ async def get_suggestion(websocket: WebSocket):
                 prefix_text = message.get("prefix_text", "")
                 suffix_text = message.get("suffix_text", "")
                 
-                # Stream suggestion chunks
-                async for chunk in stream_suggestion(prefix_text, suffix_text):
-                    if chunk and not chunk.startswith("Error:"):
-                        # Send each chunk as it comes
-                        response = {"chunk": chunk}
-                        await websocket.send_text(json.dumps(response))
-                    else:
-                        # Send error if occurred
-                        error_response = {"error": chunk[6:] if chunk.startswith("Error:") else "Streaming error"}
-                        await websocket.send_text(json.dumps(error_response))
-                        break
+                # Get complete suggestion
+                suggestion = await get_suggestion(prefix_text, suffix_text)
                 
-                # Send completion signal
-                await websocket.send_text(json.dumps({"done": True}))
+                if suggestion and not suggestion.startswith("Error:"):
+                    # Send the complete suggestion
+                    response = {"suggestion": suggestion}
+                    await websocket.send_text(json.dumps(response))
+                else:
+                    # Send error if occurred
+                    error_message = suggestion[6:] if suggestion.startswith("Error:") else "Generation error"
+                    error_response = {"error": error_message}
+                    await websocket.send_text(json.dumps(error_response))
                 
             except json.JSONDecodeError:
                 error_response = {"error": "Invalid JSON format"}
