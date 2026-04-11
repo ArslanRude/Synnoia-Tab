@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.model.suggestion_model import get_suggestion
+from app.model.suggestion_model import get_suggestion, get_cache_stats
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 
@@ -11,6 +11,11 @@ app = FastAPI()
 @app.get("/")
 async def get_root():
     return {"Hello": "World"}
+
+@app.get("/cache-stats")
+async def get_cache_statistics():
+    """Get current cache statistics."""
+    return get_cache_stats()
 
 @app.websocket("/ws")
 async def get_suggestion_ws(websocket: WebSocket):
@@ -26,12 +31,18 @@ async def get_suggestion_ws(websocket: WebSocket):
                 prefix_text = message.get("prefix_text", "")
                 suffix_text = message.get("suffix_text", "")
                 
-                # Get complete suggestion
-                suggestion = await get_suggestion(prefix_text, suffix_text)
+                # Checkpoint: Validate that prefix and suffix are provided
+                if not prefix_text and not suffix_text:
+                    error_response = {"error": "Missing required fields: prefix_text and suffix_text"}
+                    await websocket.send_text(json.dumps(error_response))
+                    continue
+                
+                # Get complete suggestion (returns tuple: suggestion, cache_hit)
+                suggestion, cache_hit = await get_suggestion(prefix_text, suffix_text)
                 
                 if suggestion and not suggestion.startswith("Error:"):
-                    # Send the complete suggestion
-                    response = {"suggestion": suggestion}
+                    # Send the complete suggestion with cache status
+                    response = {"suggestion": suggestion, "cached": cache_hit}
                     await websocket.send_text(json.dumps(response))
                 else:
                     # Send error if occurred
@@ -55,5 +66,3 @@ async def get_suggestion_ws(websocket: WebSocket):
     finally:
         # Cleanup if needed
         print("WebSocket connection closed")
-
-

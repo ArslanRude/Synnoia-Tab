@@ -1,8 +1,11 @@
 import os
+import hashlib
+import asyncio
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from cachetools import LRUCache
 
 
 class Suggestion_Schema(BaseModel):
@@ -64,14 +67,49 @@ You are a silent writing partner.
 
 suggestion_chain = suggestion_prompt | suggestion_model
 
+# Global LRU cache and lock
+cache = LRUCache(maxsize=500)
+cache_lock = asyncio.Lock()
+
+def _generate_cache_key(prefix_text: str, suffix_text: str) -> str:
+    """Generate MD5 cache key from normalized prefix and suffix."""
+    # Strip each part individually before combining
+    normalized_prefix = prefix_text.strip().lower()
+    normalized_suffix = suffix_text.strip().lower()
+    normalized = f"{normalized_prefix}|||{normalized_suffix}"
+    return hashlib.md5(normalized.encode('utf-8')).hexdigest()
+
 async def get_suggestion(prefix_text: str, suffix_text: str):
-    """Get complete suggestion from the model"""
+    """Get complete suggestion from the model with LRU caching.
+    
+    Returns:
+        tuple: (suggestion_text, cache_hit_boolean)
+    """
+    cache_key = _generate_cache_key(prefix_text, suffix_text)
+    
+    async with cache_lock:
+        if cache_key in cache:
+            return (cache[cache_key], True)
+    
+    # Cache miss - call the model
     try:
         suggestion = await suggestion_chain.ainvoke({
             "prefix_text": prefix_text,
             "suffix_text": suffix_text
         })
-        return suggestion['suggestion']
+        result = suggestion['suggestion']
+        
+        # Don't cache error responses
+        if not result.startswith("Error:"):
+            async with cache_lock:
+                cache[cache_key] = result
+        
+        return (result, False)
     except Exception as e:
-        return f"Error: {str(e)}"
+        return (f"Error: {str(e)}", False)
+
+# Cache statistics for monitoring
+def get_cache_stats():
+    """Get current cache statistics."""
+    return {"size": cache.currsize, "maxsize": cache.maxsize}
 
