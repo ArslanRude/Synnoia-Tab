@@ -1,0 +1,11 @@
+python-dotenv
+langchain
+langchain-community
+langchain-groq
+pydantic
+fastapi
+uvicorn
+langchain_core
+uvicorn[standard]
+langchain-google-genai
+cachetools
