@@ -1,288 +1,365 @@
-# Synnoia-Tab
+<div align="center">
 
-**Intelligent Line Completion Engine for Document Editors**
+![Synnoia](https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,15,16,18&height=200&section=header&text=Synnoia&fontSize=80&fontColor=fff&animation=twinkling&fontAlignY=35)
 
-Synnoia-Tab is a powerful AI-powered line completion system that provides context-aware text suggestions to enhance writing productivity. Built with FastAPI and powered by Groq's LLaMA models, it offers real-time text completion through a clean WebSocket API.
+**✨ AI-Powered Line Completion Engine for Document Editors ✨**
 
-## 🚀 Features
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![WebSocket](https://img.shields.io/badge/WebSocket-FF6B6B?style=for-the-badge&logo=socket.io&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://gemini.google.com/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 
-- **Real-time Suggestions**: Get instant text completions as you type
-- **Context-Aware**: Understands both prefix and suffix context for accurate suggestions
-- **WebSocket API**: Efficient, low-latency communication
-- **JSON Responses**: Clean, structured output format
-- **Error Handling**: Robust error management and recovery
-- **FastAPI Backend**: Modern, high-performance web framework
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=E94560&center=true&vCenter=true&width=435&lines=Real-time+AI+suggestions;LRU+Cache+for+speed;9+Smart+Checkpoints;WebSocket+powered" alt="Typing SVG" />
+</p>
 
-## 🛠️ Tech Stack
+</div>
 
-- **Backend**: FastAPI
-- **AI Model**: Groq LLaMA-3.3-70b-Versatile
-- **Language**: Python 3.8+
-- **API Protocol**: WebSocket
-- **Data Format**: JSON
+---
 
-## 📦 Installation
+## 🚀 What is Synnoia?
 
-### Prerequisites
+Synnoia is a high-performance, AI-driven line completion engine that provides intelligent text suggestions in real-time. Built with **FastAPI** and powered by **Google Gemini**, it uses **WebSocket** connections for instant, bidirectional communication with document editors.
 
-- Python 3.8 or higher
-- pip package manager
-- Groq API key
+### ✨ Key Features
 
-### Setup
+| Feature | Description | Status |
+|---------|-------------|--------|
+| ⚡ **Real-time Suggestions** | WebSocket-powered instant completions | ✅ Active |
+| 🧠 **Google Gemini AI** | State-of-the-art language model | ✅ Active |
+| 💾 **LRU Cache** | 500-entry cache with MD5 key hashing | ✅ Active |
+| 🔒 **9 Smart Checkpoints** | Post-processing pipeline for quality | ✅ Active |
+| 📊 **Cache Statistics** | Monitor cache hit rates via endpoint | ✅ Active |
+| 🎨 **HTML Test Client** | Beautiful web-based testing interface | ✅ Active |
+| 🚄 **Railway Ready** | One-click deployment configuration | ✅ Active |
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Synnoia-Tab
-   ```
+---
 
-2. **Create and activate virtual environment**
-   ```bash
-   python -m venv .venv
-   
-   # Windows
-   .venv\Scripts\activate.bat
-   
-   # macOS/Linux
-   source .venv/bin/activate
-   ```
+## 🏗️ Architecture
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```
+┌─────────────────┐     WebSocket      ┌──────────────────┐
+│   Document      │◄──────────────────►│   Synnoia Server   │
+│   Editor        │   JSON Protocol    │   (FastAPI)        │
+└─────────────────┘                    └────────┬───────────┘
+                                               │
+                         ┌─────────────────────┼─────────────────────┐
+                         │                     │                     │
+                         ▼                     ▼                     ▼
+                ┌──────────────┐    ┌──────────────────┐   ┌──────────────┐
+                │   LRU Cache  │    │  9 Checkpoints   │   │   Gemini AI  │
+                │  (500 max)   │    │  Post-Processing │   │   (Google)   │
+                └──────────────┘    └──────────────────┘   └──────────────┘
+```
 
-4. **Set up environment variables**
-   ```bash
-   # Create .env file
-   echo "GROQ_API_KEY=your_groq_api_key_here" > .env
-   ```
+---
+
+## 🎯 The 9 Checkpoints Pipeline
+
+Every suggestion passes through 9 deterministic checkpoints for quality assurance:
+
+```mermaid
+flowchart LR
+    A[Raw Model Output] --> B[CP1: Empty Guard]
+    B -->|Pass| C[CP2: Duplicate Check]
+    C -->|Pass| D[CP3: Space Injection]
+    D -->|Pass| E[CP4: Capitalization]
+    E -->|Pass| F[CP5: Prefix Strip]
+    F -->|Pass| G[CP6: Suffix Strip]
+    G -->|Pass| H[CP7: Newline Guard]
+    H -->|Pass| I[CP8: Whitespace Norm]
+    I -->|Pass| J[CP9: Min Length]
+    J -->|Pass| K[Clean Suggestion]
+    B -->|Fail| L[Discard]
+    C -->|Fail| L
+    F -->|Fail| L
+    G -->|Fail| L
+    H -->|Fail| L
+    J -->|Fail| L
+```
+
+| # | Checkpoint | Action | Returns None If |
+|---|------------|--------|-----------------|
+| 1 | **Empty Guard** | Filters blank output | Empty or whitespace-only |
+| 2 | **Duplicate Check** | Prevents prefix duplication | Already exists in prefix tail |
+| 3 | **Space Injection** | Adds/removes boundary spaces | - (always passes) |
+| 4 | **Capitalization** | Uppercases after `.!?` | - (always passes) |
+| 5 | **Prefix Strip** | Removes repeated prefix words | Result becomes empty |
+| 6 | **Suffix Strip** | Removes overlapping suffix | Result becomes empty |
+| 7 | **Newline Guard** | Truncates at `\n` | Result becomes empty |
+| 8 | **Whitespace Norm** | Collapses multiple spaces | - (always passes) |
+| 9 | **Min Length** | Filters short suggestions | < 3 characters |
+
+---
 
 ## 🚀 Quick Start
 
-1. **Start the server**
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
-   ```
+### Prerequisites
 
-2. **Test the API**
-   - Open `http://localhost:8000` in your browser to see the API status
-   - Use WebSocket client to connect to `ws://localhost:8000/ws`
+- Python 3.11+
+- Google Gemini API Key
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/synnoia-tab.git
+cd synnoia-tab
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Environment Setup
+
+Create a `.env` file:
+
+```env
+GOOGLE_API_KEY=your_gemini_api_key_here
+```
+
+### Run Locally
+
+```bash
+# Start the server
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# Open test client
+# Open test_client.html in your browser
+```
+
+---
 
 ## 📡 API Documentation
 
 ### WebSocket Endpoint
 
-**URL**: `ws://localhost:8000/ws`
+```
+ws://localhost:8000/ws
+```
 
 #### Request Format
+
 ```json
 {
-  "prefix_text": "Text before cursor",
-  "suffix_text": "Text after cursor"
+  "prefix_text": "Hello my name is",
+  "suffix_text": "and I love coding."
 }
 ```
 
 #### Response Format
+
 ```json
 {
-  "suggestion": "AI-generated completion text"
+  "suggestion": " Arslan ",
+  "cached": false
 }
 ```
 
 #### Error Response
+
 ```json
 {
-  "error": "Error description"
+  "error": "Missing required fields: prefix_text and suffix_text"
 }
 ```
 
 ### HTTP Endpoints
 
-#### GET `/`
-Returns API status and basic information.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Health check - returns `{"Hello": "World"}` |
+| `/cache-stats` | GET | Cache statistics - returns `{"size": N, "maxsize": 500}` |
 
-```json
-{
-  "Hello": "World"
-}
+---
+
+## 🎨 Test Client
+
+The project includes a beautiful HTML test client with:
+
+- 🔴🟢 **Live connection status** indicator
+- 📝 **Prefix & Suffix** input fields
+- 📤 **Send requests** with WebSocket
+- 📥 **Real-time responses** with cache badges
+- 📜 **Request history** tracking
+- ⌨️ **Keyboard shortcuts** (Ctrl+Enter to send)
+
+<div align="center">
+
+![Test Client Preview](https://via.placeholder.com/600x400/16213e/e94560?text=Synnoia+Test+Client+Preview)
+
+</div>
+
+---
+
+## 🚄 Deployment
+
+### Railway (Recommended)
+
+```bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login and deploy
+railway login
+railway init
+railway up
+
+# Set environment variable
+railway vars set GOOGLE_API_KEY=your_key_here
 ```
 
-## 💻 Usage Examples
+### Local with Docker
 
-### JavaScript/TypeScript Client
+```dockerfile
+FROM python:3.11-slim
 
-```javascript
-const ws = new WebSocket('ws://localhost:8000/ws');
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-ws.onopen = function() {
-    console.log('Connected to Synnoia-Tab');
-};
+COPY . .
 
-ws.onmessage = function(event) {
-    const response = JSON.parse(event.data);
-    if (response.suggestion) {
-        console.log('Suggestion:', response.suggestion);
-        // Apply suggestion to your editor
-    }
-};
-
-// Send request for suggestion
-function getSuggestion(prefix, suffix) {
-    const message = {
-        prefix_text: prefix,
-        suffix_text: suffix
-    };
-    ws.send(JSON.stringify(message));
-}
-
-// Example usage
-getSuggestion("Hello ", "world");
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-### Python Client
+---
+
+## 🔧 Configuration
+
+### Model Parameters
 
 ```python
+model = ChatGoogleGenerativeAI(
+    model="gemini-3-flash-preview",
+    temperature=0.3,        # Lower = more focused
+    max_tokens=64,           # Short completions
+    stop=["\n\n"],           # Stop at paragraph breaks
+    top_p=0.9,              # Nucleus sampling
+    top_k=40                # Top-k sampling
+)
+```
+
+### Cache Configuration
+
+```python
+cache = LRUCache(maxsize=500)  # 500 entries
+```
+
+---
+
+## 🧪 Testing
+
+### Manual Testing
+
+1. Start the server: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+2. Open `test_client.html` in browser
+3. Enter prefix/suffix and click "Send Request"
+4. Observe response with cache status
+
+### Automated Testing
+
+```python
+# Example test script
 import asyncio
 import websockets
 import json
 
-async def get_suggestion(prefix, suffix):
-    uri = "ws://localhost:8000/ws"
-    async with websockets.connect(uri) as websocket:
-        message = {
-            "prefix_text": prefix,
-            "suffix_text": suffix
-        }
-        await websocket.send(json.dumps(message))
-        response = await websocket.recv()
-        result = json.loads(response)
-        return result.get("suggestion", "")
+async def test():
+    async with websockets.connect("ws://localhost:8000/ws") as ws:
+        await ws.send(json.dumps({
+            "prefix_text": "The weather today is",
+            "suffix_text": "and I plan to go outside."
+        }))
+        response = await ws.recv()
+        print(response)
 
-# Usage
-suggestion = asyncio.run(get_suggestion("Hello ", "world"))
-print(f"Suggestion: {suggestion}")
+asyncio.run(test())
 ```
-
-### cURL Testing
-
-```bash
-# Install wscat for WebSocket testing
-npm install -g wscat
-
-# Connect to WebSocket
-wscat -c ws://localhost:8000/ws
-
-# Send message (after connecting)
-{"prefix_text": "Hello ", "suffix_text": "world"}
-```
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Run all tests
-python -m pytest
-
-# Run with coverage
-python -m pytest --cov=app
-```
-
-### Manual Testing
-
-1. **Start the server**: `uvicorn app.main:app --reload`
-2. **Open test HTML**: Open `test_websocket.html` in browser
-3. **Run Python client**: `python test_client.py`
-
-## 🏗️ Project Structure
-
-```
-Synnoia-Tab/
-├── app/
-│   ├── main.py                 # FastAPI application and WebSocket endpoint
-│   ├── model/
-│   │   └── suggestion_model.py # AI model configuration and chain
-│   └── prompt/
-│       └── prompts.py         # System prompts and templates
-├── test_websocket.html        # HTML test client
-├── test_client.py             # Python test client
-├── requirements.txt           # Python dependencies
-├── .env                       # Environment variables (create this)
-└── README.md                  # This file
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GROQ_API_KEY` | Your Groq API key | Yes |
-
-### Model Parameters
-
-The AI model can be configured in `app/model/suggestion_model.py`:
-
-- **Model**: `llama-3.3-70b-versatile`
-- **Temperature**: 0.2 (lower for more deterministic output)
-- **Max Tokens**: 64 (short completions)
-- **Stop Sequences**: `["\n\n"]` (stop at double newline)
-
-## 🚨 Error Handling
-
-The WebSocket API includes comprehensive error handling:
-
-- **JSON Parse Errors**: Invalid JSON format
-- **Processing Errors**: AI model issues
-- **Connection Errors**: WebSocket disconnection
-- **Validation Errors**: Missing required fields
-
-All errors are returned in JSON format with descriptive messages.
-
-## 🔧 Development
-
-### Adding New Features
-
-1. **Model Updates**: Modify `app/model/suggestion_model.py`
-2. **Prompt Changes**: Update `app/prompt/prompts.py`
-3. **API Endpoints**: Add to `app/main.py`
-4. **Testing**: Create tests in appropriate directories
-
-### Code Style
-
-- Follow PEP 8 Python style guide
-- Use type hints where applicable
-- Add docstrings to functions and classes
-- Keep functions small and focused
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](../../issues) page
-2. Create a new issue with detailed information
-3. Include error logs and environment details
-
-## 🙏 Acknowledgments
-
-- [Groq](https://groq.com/) for providing fast AI inference
-- [FastAPI](https://fastapi.tiangolo.com/) for the web framework
-- [LangChain](https://python.langchain.com/) for AI model integration
 
 ---
 
-**Synnoia-Tab** - Making writing smarter, one suggestion at a time. 🚀
+## 📊 Performance
+
+| Metric | Value |
+|--------|-------|
+| **Cache Hit** | ~0.1ms response time |
+| **Cache Miss** | ~500-1000ms (model inference) |
+| **Cache Size** | 500 entries |
+| **Key Hashing** | MD5 of normalized prefix+suffix |
+| **WebSocket** | Persistent connection |
+
+---
+
+## 🛡️ Error Handling
+
+The system handles errors gracefully:
+
+- **Empty inputs** → Returns error message
+- **Model errors** → Returns "Error: ..." (not cached)
+- **Checkpoint filtered** → Silently discarded
+- **WebSocket disconnect** → Cleans up connection
+
+---
+
+## 📝 Project Structure
+
+```
+synnoia-tab/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI + WebSocket handler
+│   └── model/
+│       ├── __init__.py
+│       └── suggestion_model.py # Model + Cache + Checkpoints
+├── .env                      # Environment variables
+├── .gitignore
+├── Procfile                  # Railway deployment
+├── requirements.txt          # Python dependencies
+├── test_client.html          # Web-based test client
+└── README.md                 # This file
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+---
+
+## 🙏 Acknowledgments
+
+- [FastAPI](https://fastapi.tiangolo.com/) - Web framework
+- [LangChain](https://langchain.com/) - LLM framework
+- [Google Gemini](https://gemini.google.com/) - AI model
+- [cachetools](https://cachetools.readthedocs.io/) - LRU cache
+- [Railway](https://railway.app/) - Deployment platform
+
+---
+
+<div align="center">
+
+**Made with ❤️ by Synnoia Team**
+
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4ecca3&center=true&vCenter=true&width=435&lines=Write+better%2C+write+faster;AI+at+your+fingertips" alt="Typing SVG" />
+</p>
+
+</div>

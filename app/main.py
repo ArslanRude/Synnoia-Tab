@@ -40,13 +40,17 @@ async def get_suggestion_ws(websocket: WebSocket):
                 # Get complete suggestion (returns tuple: suggestion, cache_hit)
                 suggestion, cache_hit = await get_suggestion(prefix_text, suffix_text)
                 
-                if suggestion and not suggestion.startswith("Error:"):
+                # Silently discard None responses (filtered by checkpoints)
+                if suggestion is None:
+                    continue
+                
+                if not suggestion.startswith("Error:"):
                     # Send the complete suggestion with cache status
                     response = {"suggestion": suggestion, "cached": cache_hit}
                     await websocket.send_text(json.dumps(response))
                 else:
                     # Send error if occurred
-                    error_message = suggestion[6:] if suggestion.startswith("Error:") else "Generation error"
+                    error_message = suggestion[6:]
                     error_response = {"error": error_message}
                     await websocket.send_text(json.dumps(error_response))
                 
