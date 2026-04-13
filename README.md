@@ -1,6 +1,6 @@
 <div align="center">
 
-![Synnoia](https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,15,16,18&height=200&section=header&text=Synnoia&fontSize=80&fontColor=fff&animation=twinkling&fontAlignY=35)
+![Synnoia TAB](https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,15,16,18&height=200&section=header&text=SynnoiaTab&fontSize=80&fontColor=fff&animation=twinkling&fontAlignY=35)
 
 **✨ AI-Powered Line Completion Engine for Document Editors ✨**
 
